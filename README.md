@@ -1,5 +1,5 @@
 # Analysis of Long COVID Symptoms using BERT and Twitter Data
-![header](https://github.com/gromdimon/long-covid/images/header.jpg)
+![header](images/header.jpg)
 
 
 ## Table of Contents
