@@ -139,3 +139,4 @@ Include a list of references or resources that were used during the project, suc
 - LabelStudio Documentation - [https://labelstud.io/](https://labelstud.io/)
 - Kaggle - [https://www.kaggle.com/](https://www.kaggle.com/)
 - [BERT for "Everyone"](https://www.kaggle.com/code/harshjain123/bert-for-everyone-tutorial-implementation/notebook) Kaggle notebook by [Harsh Jaoin](https://www.kaggle.com/harshjain123
+- Header Image - [CureVac](https://www.curevac.com/en/covid-19/)
