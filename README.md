@@ -103,9 +103,7 @@ After training, the performance of the BERT model is evaluated on the testing se
 The results obtained from the BERT model are presented in this section. It includes performance metrics, such as accuracy, precision, recall, and F1 score, along with visualizations to illustrate the distribution of Long COVID symptoms identified from the Twitter data. Furthermore, analysis and interpretation of the results are provided to understand the prevalence and patterns of Long COVID symptoms.
 
 ## 7. Conclusion
-In
-
- this project, we utilized BERT and Twitter data to perform an analysis of Long COVID symptoms. By training a BERT model on a labeled Long COVID dataset, we successfully identified and analyzed symptoms from Twitter data. The results obtained provide valuable insights into the prevalence and patterns of Long COVID symptoms. This analysis can contribute to the understanding and management of Long COVID, assisting healthcare professionals in providing appropriate care to affected individuals.
+In this project, we utilized BERT and Twitter data to perform an analysis of Long COVID symptoms. By training a BERT model on a labeled Long COVID dataset, we successfully identified and analyzed symptoms from Twitter data. The results obtained provide valuable insights into the prevalence and patterns of Long COVID symptoms. This analysis can contribute to the understanding and management of Long COVID, assisting healthcare professionals in providing appropriate care to affected individuals.
 
 
 ## 8. Contributors
