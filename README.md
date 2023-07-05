@@ -3,20 +3,20 @@
 
 
 ## Table of Contents
-1. Introduction
-2. Getting Started
-   - Prerequisites
-   - Installation
-3. Data Collection
-4. Preprocessing
-5. BERT Model
-   - Model Architecture
-   - Training
-   - Evaluation
-6. Results and Analysis
-7. Conclusion
-8. Contributors
-9. References
+1. [Introduction](#1-introduction)
+2. [Getting Started](#2-getting-started)
+   - [Prerequisites](#prerequisites)
+   - [Installation](#installation)
+3. [Data Collection](#3-data-collection)
+4. [Preprocessing](#4-preprocessing)
+5. [BERT Model](#5-bert-model)
+   - [Model Architecture](#model-architecture)
+   - [Training](#training)
+   - [Evaluation](#evaluation)
+6. [Results and Analysis](#6-results-and-analysis)
+7. [Conclusion](#7-conclusion)
+8. [Contributors](#8-contributors)
+9. [References](#9-references)
 
 
 ## 1. Introduction
@@ -60,10 +60,10 @@ To collect Twitter data, we used appropriate keywords and hashtags related to Lo
 
 However, it is important to note that Twitter data comes with certain challenges and considerations:
 
-#### Retweets and Duplicates
+- **Retweets and Duplicates:**
 Retweets are a common occurrence on Twitter, where users repost or share someone else's tweet. This can lead to duplicate data, as the same content may appear multiple times. To address this, we implemented a mechanism to remove retweets and identify unique tweets for analysis. 
 
-#### Noisy and Irrelevant Data
+- **Noisy and Irrelevant Data:**
 Twitter data can contain noise, such as spam, advertisements, or unrelated content. During the data collection process, we applied filters to remove irrelevant tweets and focus only on those specifically related to Long COVID symptoms. This helped ensure the quality and relevance of the collected data.
 
 ### Article Data
