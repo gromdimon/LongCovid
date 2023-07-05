@@ -110,7 +110,7 @@ In this project, we utilized BERT and Twitter data to perform an analysis of Lon
 This project was conducted as part of the "Deep Learning, practical approach" course at Freie Universität Berlin ([FU-Berlin](https://www.fu-berlin.de/)). The project team consisted of the following contributors:
 
 - Dzmitry Hramyka
-- Kristin Öhlek
+- Kristin Köhler
 - Nirmal Sasthankuttypillai
 
 ### Supervisors
