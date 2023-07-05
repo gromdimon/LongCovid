@@ -1,4 +1,5 @@
 # Analysis of Long COVID Symptoms using BERT and Twitter Data
+![header](images/header.jpg)
 
 
 ## Table of Contents
@@ -137,4 +138,4 @@ Include a list of references or resources that were used during the project, suc
 - Seaborn Documentation - [https://seaborn.pydata.org/tutorial.html](https://seaborn.pydata.org/tutorial.html)
 - LabelStudio Documentation - [https://labelstud.io/](https://labelstud.io/)
 - Kaggle - [https://www.kaggle.com/](https://www.kaggle.com/)
-- [BERT for "Everyone"](https://www.kaggle.com/code/harshjain123/bert-for-everyone-tutorial-implementation/notebook) Kaggle notebook by [Harsh Jaoin](https://www.kaggle.com/harshjain123) 
+- [BERT for "Everyone"](https://www.kaggle.com/code/harshjain123/bert-for-everyone-tutorial-implementation/notebook) Kaggle notebook by [Harsh Jaoin](https://www.kaggle.com/harshjain123
