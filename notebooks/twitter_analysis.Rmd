@@ -1,0 +1,306 @@
+---
+title: "Twitter EDA"
+author: "Kristin Köhler"
+date: "25/09/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(wordcloud2)
+library(tidytext)
+library(data.table)
+
+Sys.setlocale(category="LC_ALL", locale="German")
+
+```
+
+Read and process all Twitter files (tweets and user data)
+```{r}
+library(rjson)
+
+##tweet data
+tweets = list()
+for(file in list.files("/Users/kristinkoehler/Desktop/NLP_DL/long_covid2/twitter/", pattern = 'data*', recursive = TRUE)){
+  print(file)
+  
+  tweets[[file]] = jsonlite::fromJSON(txt =paste0("/Users/kristinkoehler/Desktop/NLP_DL/long_covid2/twitter/",file),
+                            flatten = TRUE)
+  tweets[[file]] = tweets[[file]] %>% select(text, id, created_at, author_id, public_metrics.retweet_count,
+                                             public_metrics.reply_count, public_metrics.like_count, public_metrics.quote_count,
+                                             public_metrics.impression_count, entities.mentions, entities.hashtags,
+                                             entities.urls)
+
+}
+tweets_merged = bind_rows(tweets)
+tweets_merged = tweets_merged %>% unnest_wider(c(entities.mentions,entities.hashtags), names_sep = ".")
+saveRDS(tweets_merged, 'TweetDataMerged.rds')
+
+##user data
+users_info = list()
+for(file in list.files("/Users/kristinkoehler/Desktop/NLP_DL/long_covid2/twitter/", pattern = 'user*', recursive = TRUE)){
+  print(file)
+  
+  users_info[[file]] = jsonlite::fromJSON(txt =paste0("/Users/kristinkoehler/Desktop/NLP_DL/long_covid2/twitter/",file),
+                            flatten = TRUE)$users
+
+}
+users_info = reduce(users_info, dplyr::full_join)
+saveRDS(users_tweets, 'UserDataMerged.rds')
+
+```
+
+```{r}
+tweets_merged <- readRDS('TweetDataMerged.rds')
+users_info <- readRDS('UserDataMerged.rds')
+```
+
+## Tweet information
+```{r}
+names(tweets_merged)
+```
+
+## User information
+```{r}
+names(users_info)
+```
+The author IDs fully intersect with the user metadata 
+```{r}
+all(tweets_merged$author_id %in% users_info$id)
+```
+
+
+## User locations
+```{r}
+nrow(users_info)
+top_locations <- users_info %>% count(location) %>% arrange(-n) %>% top_n(n=20) 
+top_locations$location <- factor(top_locations$location, levels = top_locations$location)
+ggplot(top_locations) + geom_bar(aes(x=location, y=n), stat='identity', position='dodge') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1), axis.title.x = element_blank())
+```
+Some other statistics
+```{r}
+summary(users_info %>% select_if(is.numeric))
+```
+## Number of tweets per user
+```{r}
+tweets_merged %>% 
+  plyr::count('author_id') %>% 
+  merge(users_info[,c('username','id')], by.x = 'author_id', by.y = 'id') %>%
+  distinct() %>%
+  arrange(-freq) %>% 
+  top_n(n = 20, wt = freq)
+```
+Top 20 most retweeted tweets
+```{r}
+mostRetweeted_tweets_top20 <- tweets_merged[!startsWith(tweets_merged$text, 'RT'),]
+mostRetweeted_tweets_top20<-  (mostRetweeted_tweets_top20 %>% arrange(-public_metrics.retweet_count))[1:20,c('text', 'author_id','public_metrics.retweet_count')]
+mostRetweeted_tweets_top20 <- merge(mostRetweeted_tweets_top20, unique(users_info[c('id', 'username')]), by.x = 'author_id', by.y = 'id')
+mostRetweeted_tweets_top20[c("text", "username")]
+
+```
+
+
+## Number of tweets per year/month
+```{r}
+tweets_merged$created_at=as.Date(tweets_merged$created_at)
+tweets_merged$year=year(tweets_merged$created_at)
+
+texts = tweets_merged[c("text", "created_at", "year")]
+
+
+texts %>% 
+  ggplot() + geom_bar(aes(x = year)) 
+texts <- data.table(texts)
+texts_counts <- texts[, .N, by=.(year(created_at), month(created_at), day(created_at))] 
+texts_counts$date <- paste0(texts_counts$year,'-', texts_counts$month,'-', texts_counts$day)
+texts_counts$date <- as.Date(texts_counts$date, format = '%Y-%m-%d')
+
+```
+##Plot number of Covid infections (https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Daten/Inzidenz-Tabellen.html)
+```{r}
+library("readxl")
+fallzahlen23 <- read_excel('Fallzahlen_2021-23.xlsx', sheet = 3)
+fallzahlen20 <- read_excel('Fallzahlen_2020-21.xlsx', sheet = 2)
+
+fallzahlen_gesamt <- data.frame(dates = c(colnames(fallzahlen20)[-1], colnames(fallzahlen23)[-1]),
+                                infectionNr = c(as.numeric(fallzahlen20[nrow(fallzahlen20),-1]),
+                                                as.numeric(fallzahlen23[nrow(fallzahlen23),-1])))
+fallzahlen_gesamt$dates <- str_replace_all(fallzahlen_gesamt$dates, '2021', '21')
+fallzahlen_gesamt$dates <- str_replace_all(fallzahlen_gesamt$dates, '2022', '22')
+fallzahlen_gesamt$dates <- str_replace_all(fallzahlen_gesamt$dates, '2023', '23')
+fallzahlen_gesamt$dates <- as.Date(fallzahlen_gesamt$dates, format = "%d.%m.%y")
+
+```
+
+```{r}
+fallzahlen_p <- ggplot(fallzahlen_gesamt) +  geom_line(aes(x=dates,y=infectionNr)) + xlab('') +
+  ggtitle('Number of Covid Infections') +
+  theme_bw() + ylab('') 
+  
+timeline_tweets <- texts_counts %>% ggplot() + geom_line(aes(x = date, y = N))  + 
+  ggtitle('Number of Tweets related to Long-Covid') +
+  xlab('') + ylab('') +
+  theme_bw()
+
+library(grid)
+grid.newpage()
+grid.draw(rbind(ggplotGrob(fallzahlen_p), ggplotGrob(timeline_tweets), size = "last")) 
+
+```
+
+Read stop words file
+```{r}
+de_stop_words <- read_lines('/Users/kristinkoehler/Desktop/NLP_DL/stopwords-de.txt')
+```
+
+Most commonly used words in tweets (without stop words)
+```{r}
+##count and plot word frequencies
+lead_words <- texts %>%
+  unnest_tokens(word, text, token = "words") %>%
+  filter(!word %in% de_stop_words) %>% # delete stop words
+  filter(nchar(word) >= 3)%>%  # 3letters
+  filter(word!="https")%>% 
+  filter(word!="t.co") %>% 
+  filter(!str_detect(word, "[:digit:]" ))
+
+lead_words_stem <- lead_words
+
+lead_words_cloud <- lead_words_stem %>%
+  dplyr::count(word) %>%
+  ungroup() %>%
+  dplyr::rename(freq = n) %>%
+  arrange(-freq) %>%
+  top_n(100)
+
+
+top_1000_words = lead_words_stem %>%
+  dplyr::count(word) %>%
+  ungroup() %>%
+  mutate(word = factor(word, levels=word)) %>%
+  filter(!is.na(word)) %>%
+  arrange(-n) %>%
+  top_n(1000, n) 
+
+#write.table(top_1000_words, 'top1000_words.csv', sep = ';')
+```
+Word cloud 
+```{r}
+#library(htmlwidgets) 
+#library(webshot)
+
+wc <- wordcloud2(lead_words_cloud)#,
+          #max.words = 100, scale = c(2.4, 0.6),
+         #color = RColorBrewer::brewer.pal(11, "Spectral")[1:11])
+wc
+#saveWidget(wc,"wordcloud_tweetsMerged.html",selfcontained = F)
+#webshot::webshot("wordcloud_tweetsMerged.html","wordcloud_tweetsMerged.png",vwidth = 1992, vheight = 1744, delay =10)
+
+```
+##top words
+```{r}
+lead_words_stem %>%
+  dplyr::count(word) %>%
+  ungroup() %>%
+  filter(!is.na(word)) %>%
+  arrange(-n) %>%
+  top_n(50, n) %>%  
+  mutate(word = factor(word, levels=word)) %>%
+  ggplot() +
+  geom_bar(aes(word, n), stat = "identity", fill = "lightgreen", color = "gray50") +
+  ggtitle("Most frequent")+
+  coord_flip()
+```
+
+Most common hashtags
+```{r}
+##top hashtags
+hashtags = unlist(tweets_merged$entities.hashtags.tag)
+wordcloud2(hashtags %>% plyr::count() %>% arrange(-freq) %>% top_n(n=100), size = 4)
+```
+
+## Most commonly linked user profiles
+```{r}
+##top mentions
+mentions = unlist(tweets_merged$entities.mentions.username)
+wordcloud2(mentions %>% plyr::count() %>% arrange(-freq) %>% top_n(n=100))
+```
+Count word occurences per month
+```{r}
+lead_words_counts_perMonth <- lead_words %>%
+                                group_by(month = lubridate::floor_date(created_at, "month")) %>%
+                                dplyr::count(word) %>%
+                                ungroup() %>%
+                                dplyr::rename(freq = n) %>%
+                                arrange(-freq) %>%
+                                #top_n(1000)
+                                mutate(word_percentage = freq/sum(freq))
+
+lead_words_counts_perMonth_filtered = lead_words_counts_perMonth %>% filter(word %in% c('mecfs', 'cfs', 'fatigue', 'spätfolgen'))
+```
+
+
+Plot word occurences per month (Twitter)
+```{r}
+
+ggplot(lead_words_counts_perMonth_filtered) + 
+  geom_line(aes(x=month, y = word_percentage)) + 
+  facet_grid(rows =vars(word), scales = "free_y") + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  scale_x_date(breaks = "1 month", date_labels = "%Y-%m") +
+  theme_bw()
+
+ggplot(lead_words_counts_perMonth_filtered) + 
+  geom_line(aes(x=month, y = freq)) + 
+  facet_grid(rows =vars(word), scales = "free_y") + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  scale_x_date(breaks = "1 year", date_labels = "%Y-%m") + 
+  theme_bw()
+```
+
+Compare symptome occurences
+```{r}
+word_timeline <- ggplot(lead_words_counts_perMonth_filtered) + 
+  geom_line(aes(x=month, y = freq, color = word)) + 
+  #facet_grid(rows =vars(word), scales = "free_y") + 
+  #theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  #scale_x_date(breaks = "year", date_labels = "%Y") +
+  theme_bw() + xlab('') + ylab('Word occurences') + theme(legend.title=element_blank(), legend.position = c(0.1, 0.8))
+
+word_timeline
+ggsave('timeline_words.png', word_timeline, width = 20, height = 10, units = 'cm')
+
+```
+```{r}
+labeled_tweets <- read.table('/Users/kristinkoehler/Desktop/NLP_DL/long-covid/data/proper_dataset.csv', sep = ",", header = TRUE)
+```
+
+Load and merge labelled tweets
+```{r}
+tweets_merged_unique <- tweets_merged[!duplicated(tweets_merged$text),]
+labeled_merged <- merge(labeled_tweets, tweets_merged_unique, by.x='uni', by.y = 'text', all.y = FALSE)
+```
+
+```{r}
+head(labeled_merged)
+```
+
+
+```{r}
+labeled_merged$created_at.y <- as.Date(labeled_merged$created_at.y, format = '%Y-%m-%d')
+ggplot(labeled_merged) + geom_density(aes(x=created_at.y, color = sentiment), stat = 'count')
+
+ggplot(labeled_merged) + 
+  geom_boxplot(aes(x=sentiment, y = public_metrics.retweet_count, fill = sentiment)) +
+  scale_y_continuous(trans='log10')
+ggplot(labeled_merged) + 
+  geom_boxplot(aes(x=sentiment, y = public_metrics.like_count, fill = sentiment)) +
+  scale_y_continuous(trans='log10')
+
+```
+
+
+
