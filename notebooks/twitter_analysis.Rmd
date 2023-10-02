@@ -2,12 +2,18 @@
 title: "Twitter EDA"
 author: "Kristin Köhler"
 date: "25/09/2023"
-output: html_document
+output:
+  pdf_document: 
+    latex_engine: lualatex
+  #html_document: default
+classoption: landscape
+
 ---
 
-```{r setup, include=FALSE}
+```{r setup, results=FALSE, message=FALSE}
 
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
 
 library(tidyverse)
 library(wordcloud2)
@@ -19,7 +25,7 @@ Sys.setlocale(category="LC_ALL", locale="German")
 ```
 
 Read and process all Twitter files (tweets and user data)
-```{r}
+```{r, eval = FALSE}
 library(rjson)
 
 ##tweet data
@@ -54,37 +60,43 @@ saveRDS(users_tweets, 'UserDataMerged.rds')
 ```
 
 ```{r}
-tweets_merged <- readRDS('TweetDataMerged.rds')
-users_info <- readRDS('UserDataMerged.rds')
+tweets_merged <- readRDS('/Users/kristinkoehler/Desktop/NLP_DL/TweetDataMerged.rds')
+users_info <- readRDS('/Users/kristinkoehler/Desktop/NLP_DL/UserDataMerged.rds')
 ```
 
-## Tweet information
+Tweet information
 ```{r}
 names(tweets_merged)
+cat('#tweets: ', nrow(tweets_merged))
+cat('#duplicated tweets: ', sum(duplicated(tweets_merged$text)))
+as.data.frame(table(tweets_merged$text)) %>% arrange(-Freq) %>% head(n=10)
 ```
 
-## User information
+User information
 ```{r}
+nrow(users_info)
 names(users_info)
+length(unique(users_info$id))
 ```
+
 The author IDs fully intersect with the user metadata 
 ```{r}
 all(tweets_merged$author_id %in% users_info$id)
 ```
 
-
-## User locations
+User locations
 ```{r}
-nrow(users_info)
 top_locations <- users_info %>% count(location) %>% arrange(-n) %>% top_n(n=20) 
 top_locations$location <- factor(top_locations$location, levels = top_locations$location)
 ggplot(top_locations) + geom_bar(aes(x=location, y=n), stat='identity', position='dodge') + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1), axis.title.x = element_blank())
 ```
+
 Some other statistics
 ```{r}
 summary(users_info %>% select_if(is.numeric))
 ```
-## Number of tweets per user
+
+Number of tweets per user
 ```{r}
 tweets_merged %>% 
   plyr::count('author_id') %>% 
@@ -93,6 +105,7 @@ tweets_merged %>%
   arrange(-freq) %>% 
   top_n(n = 20, wt = freq)
 ```
+
 Top 20 most retweeted tweets
 ```{r}
 mostRetweeted_tweets_top20 <- tweets_merged[!startsWith(tweets_merged$text, 'RT'),]
@@ -102,8 +115,7 @@ mostRetweeted_tweets_top20[c("text", "username")]
 
 ```
 
-
-## Number of tweets per year/month
+Number of tweets per year/month
 ```{r}
 tweets_merged$created_at=as.Date(tweets_merged$created_at)
 tweets_merged$year=year(tweets_merged$created_at)
@@ -119,11 +131,12 @@ texts_counts$date <- paste0(texts_counts$year,'-', texts_counts$month,'-', texts
 texts_counts$date <- as.Date(texts_counts$date, format = '%Y-%m-%d')
 
 ```
-##Plot number of Covid infections (https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Daten/Inzidenz-Tabellen.html)
+
+Plot number of Covid infections (https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Daten/Inzidenz-Tabellen.html)
 ```{r}
 library("readxl")
-fallzahlen23 <- read_excel('Fallzahlen_2021-23.xlsx', sheet = 3)
-fallzahlen20 <- read_excel('Fallzahlen_2020-21.xlsx', sheet = 2)
+fallzahlen23 <- read_excel('/Users/kristinkoehler/Desktop/NLP_DL/Fallzahlen_2021-23.xlsx', sheet = 3)
+fallzahlen20 <- read_excel('/Users/kristinkoehler/Desktop/NLP_DL/Fallzahlen_2020-21.xlsx', sheet = 2)
 
 fallzahlen_gesamt <- data.frame(dates = c(colnames(fallzahlen20)[-1], colnames(fallzahlen23)[-1]),
                                 infectionNr = c(as.numeric(fallzahlen20[nrow(fallzahlen20),-1]),
@@ -187,6 +200,7 @@ top_1000_words = lead_words_stem %>%
 
 #write.table(top_1000_words, 'top1000_words.csv', sep = ';')
 ```
+
 Word cloud 
 ```{r}
 #library(htmlwidgets) 
@@ -200,7 +214,8 @@ wc
 #webshot::webshot("wordcloud_tweetsMerged.html","wordcloud_tweetsMerged.png",vwidth = 1992, vheight = 1744, delay =10)
 
 ```
-##top words
+
+Top 50 most commonly used words (stop words excluded)
 ```{r}
 lead_words_stem %>%
   dplyr::count(word) %>%
@@ -215,20 +230,21 @@ lead_words_stem %>%
   coord_flip()
 ```
 
-Most common hashtags
+Most commonly used hashtags
 ```{r}
 ##top hashtags
 hashtags = unlist(tweets_merged$entities.hashtags.tag)
 wordcloud2(hashtags %>% plyr::count() %>% arrange(-freq) %>% top_n(n=100), size = 4)
 ```
 
-## Most commonly linked user profiles
+Most commonly linked user profiles
 ```{r}
 ##top mentions
 mentions = unlist(tweets_merged$entities.mentions.username)
 wordcloud2(mentions %>% plyr::count() %>% arrange(-freq) %>% top_n(n=100))
 ```
-Count word occurences per month
+
+Word occurences per month
 ```{r}
 lead_words_counts_perMonth <- lead_words %>%
                                 group_by(month = lubridate::floor_date(created_at, "month")) %>%
@@ -245,14 +261,6 @@ lead_words_counts_perMonth_filtered = lead_words_counts_perMonth %>% filter(word
 
 Plot word occurences per month (Twitter)
 ```{r}
-
-ggplot(lead_words_counts_perMonth_filtered) + 
-  geom_line(aes(x=month, y = word_percentage)) + 
-  facet_grid(rows =vars(word), scales = "free_y") + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
-  scale_x_date(breaks = "1 month", date_labels = "%Y-%m") +
-  theme_bw()
-
 ggplot(lead_words_counts_perMonth_filtered) + 
   geom_line(aes(x=month, y = freq)) + 
   facet_grid(rows =vars(word), scales = "free_y") + 
@@ -264,10 +272,7 @@ ggplot(lead_words_counts_perMonth_filtered) +
 Compare symptome occurences
 ```{r}
 word_timeline <- ggplot(lead_words_counts_perMonth_filtered) + 
-  geom_line(aes(x=month, y = freq, color = word)) + 
-  #facet_grid(rows =vars(word), scales = "free_y") + 
-  #theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
-  #scale_x_date(breaks = "year", date_labels = "%Y") +
+  geom_line(aes(x=month, y = freq, color = word)) +
   theme_bw() + xlab('') + ylab('Word occurences') + theme(legend.title=element_blank(), legend.position = c(0.1, 0.8))
 
 word_timeline
